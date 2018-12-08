@@ -30,7 +30,7 @@ def http_task(url, token, task, state):
     http_get(url='{}/task/{}/{}'.format(url, task, state), headers={'Authorization': 'Bearer {}'.format(token)})
 
 def http_token():
-    pkcs7 = http_get('http://169.254.169.254/latest/dynamic/instance-identity/pkcs7')
+    pkcs7 = http_get('http://169.254.169.254/latest/dynamic/instance-identity/pkcs7').decode('utf-8')
     data = '-----BEGIN PKCS7-----\n{}\n-----END PKCS7-----'.format(pkcs7).encode('utf-8')
     return base64.b64encode(data).decode('utf-8')
 
