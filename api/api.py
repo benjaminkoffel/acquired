@@ -71,8 +71,6 @@ def done(task, state):
     identity = verify_token(config['x509'], token)
     if not identity:
         flask.abort(401)
-    if not claims:
-        flask.abort(401)
     if state not in ['started', 'completed', 'failed']:
         flask.abort(400)
     return ''
