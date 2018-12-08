@@ -1,0 +1,9 @@
+[Unit]
+Description=response
+
+[Service]
+ExecStart=/usr/local/bin/acquired.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
