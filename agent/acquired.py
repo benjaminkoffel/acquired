@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG, format='time="%(asctime)s" level=%(leve
 
 path = '/usr/local/etc/acquired'
 
-def http_get(url, status=200, headers=None):
+def http_get(url, status=200, headers={}):
     request = urllib.request.Request(url=url, headers=headers)
     with urllib.request.urlopen(request) as r:
         if r.getcode() != status:
