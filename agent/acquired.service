@@ -2,7 +2,7 @@
 Description=response
 
 [Service]
-ExecStart=/usr/local/bin/acquired.py
+ExecStart=/usr/local/sbin/acquired.py
 Restart=on-failure
 
 [Install]
