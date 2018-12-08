@@ -64,7 +64,7 @@ def schedule(task_queue, task):
     if not os.path.exists(task_path):
         with open(task_path, 'w') as f:
             f.write(json.dumps(task))
-        if task['expires'] < int(time.time()):
+        if task['expires'] > int(time.time()):
             logging.info('event=schedule task=%s', task['id'])
             task_queue.put(task)
         else:
