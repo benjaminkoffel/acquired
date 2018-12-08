@@ -4,11 +4,12 @@ import http.client
 import json
 import logging
 import os
+import queue
+import subprocess
 import sys
+import threading
 import time
 import urllib.request
-import threading
-import queue
 
 logging.basicConfig(level=logging.DEBUG, format='time="%(asctime)s" level=%(levelname)s %(message)s', stream=sys.stdout)
 
@@ -48,13 +49,15 @@ def enrol(url, key):
         os.makedirs(path)
         os.chmod(path, 0o700)
         os.makedirs(path + '/tasks')
+        os.makedirs(path + '/artefacts')
     with open(path + '/url', 'w') as f:
         f.write(url)
     with open(path + '/token', 'w') as f:
         f.write(response['access_token'])
 
 def memory():
-    time.sleep(5) # todo: do something
+    timestamp = int(time.time())
+    subprocess.check_call(['/usr/bin/local/linpmem-2.1.post4', '-o', f'{path}/artefacts/memory.{timestamp}.aff4r'], stdout=subprocess.PIPE)
 
 def monitor(task_queue, url, token):
     while True:
@@ -65,11 +68,13 @@ def monitor(task_queue, url, token):
             try:
                 if task['action'] == 'memory':
                     memory()
+                else:
+                    raise Exception('Action not supported.')
+                logging.info('event=completed task=%s action=%s', task['id'], task['action'])
+                http_task(url, token, task['id'], 'completed')
             except:
                 logging.exception('event=failed task=%s action=%s', task['id'], task['action'])
                 http_task(url, token, task['id'], 'failed')
-            logging.info('event=completed task=%s action=%s', task['id'], task['action'])
-            http_task(url, token, task['id'], 'completed')
             task_queue.task_done()
         except:
             logging.exception('monitor')
@@ -99,7 +104,7 @@ def poll():
             logging.debug('event=poll url=%s', url)
             for task in http_poll(url, token)['tasks']:
                 schedule(task_queue, task)
-            time.sleep(60)
+            time.sleep(10)
         except Exception:
             logging.exception('poll')
 
