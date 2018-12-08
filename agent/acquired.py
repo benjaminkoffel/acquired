@@ -36,7 +36,7 @@ def http_token():
 
 def memory():
     filename = '{}/artefacts/memory.{}.aff4r'.format(path, int(time.time()))
-    subprocess.check_call(['/usr/bin/local/linpmem-2.1.post4', '-o', filename], stdout=subprocess.PIPE)
+    subprocess.check_call(['/usr/local/sbin/linpmem-2.1.post4', '-o', filename], stdout=subprocess.PIPE)
 
 def monitor(task_queue, url):
     while True:
