@@ -10,59 +10,39 @@ import sys
 import threading
 import time
 import urllib.request
+import base64
 
 logging.basicConfig(level=logging.DEBUG, format='time="%(asctime)s" level=%(levelname)s %(message)s', stream=sys.stdout)
 
-path = '/etc/acquired'
+path = '/usr/local/etc/acquired'
 
-def http_enrol(url, key, account, instance):
-    headers = {'Authorization': f'Bearer {key}'}
-    request = urllib.request.Request(f'{url}/enrol/{account}/{instance}', headers=headers)
+def http_get(url, status=200, headers={}):
+    request = urllib.request.Request(url=url, headers=headers)
     with urllib.request.urlopen(request) as r:
-        status = r.getcode()
-        if status != 200:
-            raise Exception(f'enrol returned unexpected status code {status}')
-        return json.loads(r.read())
+        if r.getcode() != status:
+            raise Exception('GET {} returned unexpected status code {}.'.format(url, r.getcode()))
+        return r.read()
 
 def http_poll(url, token):
-    headers = {'Authorization': f'Bearer {token}'}
-    request = urllib.request.Request(f'{url}/poll', headers=headers)
-    with urllib.request.urlopen(request) as r:
-        status = r.getcode()
-        if status != 200:
-            raise Exception(f'poll returned unexpected status code {status}')
-        return json.loads(r.read())
+    return json.loads(http_get(url='{}/poll'.format(url), headers={'Authorization': 'Bearer {}'.format(token)}))
 
 def http_task(url, token, task, state):
-    headers = {'Authorization': f'Bearer {token}'}
-    request = urllib.request.Request(f'{url}/task/{task}/{state}', headers=headers)
-    with urllib.request.urlopen(request) as r:
-        status = r.getcode()
-        if status != 200:
-            raise Exception(f'task returned unexpected status code {status}')
+    http_get(url='{}/task/{}/{}'.format(url, task, state), headers={'Authorization': 'Bearer {}'.format(token)})
 
-def enrol(url, key):
-    logging.info('event=enrol url=%s', url)
-    account, instance = '11111111', 'aaaaaaaa' # todo: get ec2 metadata
-    response = http_enrol(url, key, account, instance)
-    if not os.path.exists(path):
-        os.makedirs(path)
-        os.chmod(path, 0o700)
-        os.makedirs(path + '/tasks')
-        os.makedirs(path + '/artefacts')
-    with open(path + '/url', 'w') as f:
-        f.write(url)
-    with open(path + '/token', 'w') as f:
-        f.write(response['access_token'])
+def http_token():
+    pkcs7 = http_get('http://169.254.169.254/latest/dynamic/instance-identity/pkcs7').decode('utf-8')
+    data = '-----BEGIN PKCS7-----\n{}\n-----END PKCS7-----'.format(pkcs7).encode('utf-8')
+    return base64.b64encode(data).decode('utf-8')
 
 def memory():
-    timestamp = int(time.time())
-    subprocess.check_call(['/usr/bin/local/linpmem-2.1.post4', '-o', f'{path}/artefacts/memory.{timestamp}.aff4r'], stdout=subprocess.PIPE)
+    filename = '{}/artefacts/memory.{}.aff4r'.format(path, int(time.time()))
+    subprocess.check_call(['/usr/local/sbin/linpmem-2.1.post4', '-o', filename], stdout=subprocess.PIPE)
 
-def monitor(task_queue, url, token):
+def monitor(task_queue, url):
     while True:
         try:
-            task = task_queue.get()   
+            task = task_queue.get()
+            token = http_token()
             logging.info('event=started task=%s action=%s', task['id'], task['action'])
             http_task(url, token, task['id'], 'started')
             try:
@@ -82,46 +62,36 @@ def monitor(task_queue, url, token):
 def schedule(task_queue, task):
     task_path = '{}/tasks/{}'.format(path, task['id'])
     if not os.path.exists(task_path):
-        logging.info('event=schedule task=%s', task['id'])
         with open(task_path, 'w') as f:
             f.write(json.dumps(task))
-        task_queue.put(task)
+        if task['expires'] > int(time.time()):
+            logging.info('event=schedule task=%s', task['id'])
+            task_queue.put(task)
+        else:
+            logging.info('event=expired task=%s', task['id'])
 
-def poll():
-    if not os.path.exists(path):
-        logging.error('Agent has not been enrolled.')
-        return
-    with open(f'{path}/url', 'r') as f:
-        url = f.read()
-    with open(f'{path}/token', 'r') as f:
-        token = f.read()
-    task_queue = queue.Queue()
-    thread = threading.Thread(target=monitor, args=(task_queue, url, token))
-    thread.daemon = True
-    thread.start()
-    while True:
-        try:
-            logging.debug('event=poll url=%s', url)
-            for task in http_poll(url, token)['tasks']:
-                schedule(task_queue, task)
-            time.sleep(10)
-        except Exception:
-            logging.exception('poll')
+def poll(task_queue, url):
+    try:
+        token = http_token()
+        logging.debug('event=poll url=%s', url)
+        for task in http_poll(url, token)['tasks']:
+            schedule(task_queue, task)
+    except Exception:
+        logging.exception('poll')
+    time.sleep(10)
 
 def main():
     try:
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--url')
-        parser.add_argument('--key')
-        args = parser.parse_args()
-        if args.url and args.key:
-            enrol(args.url, args.key)
-        else:
-            poll()
+        with open('{}/url'.format(path), 'r') as f:
+            url = f.read().strip()
+        task_queue = queue.Queue()
+        thread = threading.Thread(target=monitor, args=(task_queue, url))
+        thread.daemon = True
+        thread.start()
+        while True:
+            poll(task_queue, url)
     except Exception:
         logging.exception('main')
-    except KeyboardInterrupt:
-        sys.stdout.flush()
 
 if __name__ == '__main__':
     main()
