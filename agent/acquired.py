@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import http.client
 import json
 import logging
 import os
