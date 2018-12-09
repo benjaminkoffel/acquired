@@ -12,9 +12,9 @@ Agents are installed as a daemon and poll the server to collect any tasks that n
 
 The server authenticates agents via PKCS#7 instance metadata and provides tasks to them if applicable.
 
-Upon completion or failure of the task the server is then notified.
+The agent stores collected data in `/usr/local/etc/acquired/artefacts` and notifies the server of completion status.
 
-A further objective is to trigger an EBS snapshot acquisition upon successful completion.
+A further objective is to trigger an EBS snapshot upon successful completion.
 
 ## Server
 ```
@@ -27,6 +27,24 @@ docker run -d -p 4444:4444 acquired
 ```
 # update server url in install.sh then execute
 sudo sh agent/install.sh
+```
+
+## Usage
+```
+actions:
+- memory: linpmem memory dump
+
+schedule action for all instances:
+curl http://localhost:4444/schedule/[action]/
+
+schedule action for all instances in account:
+curl http://localhost:4444/schedule/[action]/[account_id]/
+
+schedule action for single instance:
+curl http://localhost:4444/schedule/[action]/[account_id]/[instance_id]
+
+example:
+curl http://localhost:4444/schedule/memory/568333322432/i-03d629d19cb30dee
 ```
 
 ## References
