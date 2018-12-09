@@ -35,16 +35,16 @@ actions:
 - memory: linpmem memory dump
 
 schedule action for all instances:
-curl http://localhost:4444/schedule/[action]/
+curl http://localhost:4444/schedule/[action]/ -H "Authorization: Bearer [key]"
 
 schedule action for all instances in account:
-curl http://localhost:4444/schedule/[action]/[account_id]/
+curl http://localhost:4444/schedule/[action]/[account_id]/ -H "Authorization: Bearer [key]"
 
 schedule action for single instance:
-curl http://localhost:4444/schedule/[action]/[account_id]/[instance_id]
+curl http://localhost:4444/schedule/[action]/[account_id]/[instance_id] -H "Authorization: Bearer [key]"
 
 example:
-curl http://localhost:4444/schedule/memory/568333322432/i-03d629d19cb30dee
+curl http://localhost:4444/schedule/memory/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer ZOamAOEAN23AMcnAOMa32MAoANa33Acp"
 ```
 
 ## References
