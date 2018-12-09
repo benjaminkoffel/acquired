@@ -2,7 +2,7 @@
 
 Proof of concept for simple forensic data acquisition for AWS.
 
-The intention is to create an agent that can be depoyed with least possible amount of friction.
+The intention is to create a response agent that can be deployed with the least possible effort.
 
 It can be baked into an AMI, does not require service restart and does not require instance profile permissions.
 
