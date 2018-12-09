@@ -38,6 +38,10 @@ def extract_bearer(header):
     for token in re_bearer.findall(header):
         return token
 
+@app.route('/health')
+def health():
+    return 'OK'
+
 @app.route('/schedule/<action>/')
 @app.route('/schedule/<action>/<path:path>')
 def schedule(action, path=''):
@@ -66,7 +70,7 @@ def poll():
     }, indent=4)
 
 @app.route('/task/<task>/<state>')
-def done(task, state):
+def task(task, state):
     token = extract_bearer(flask.request.headers.get('Authorization'))
     identity = verify_token(config['x509'], token)
     if not identity:
@@ -91,8 +95,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=4444)
     parser.add_argument('--cert')
-    parser.add_argument('--key')
-    parser.add_argument('--config', default='api/config.yaml')
+    parser.add_argument('--config', default='server/config.yaml')
     args = parser.parse_args()
     ssl_context = (args.cert, args.key) if args.cert and args.key else None
     load_config(args.config)
