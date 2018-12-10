@@ -1,9 +1,18 @@
+
 Resources:
   AcquiredRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: acquired-service-role
       Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
       Policies:
         - PolicyName: root
           PolicyDocument:
@@ -11,5 +20,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - sts:AssumeRole
+                  - ec2:CreateSnapshot
+                  - ec2:DescribeSnapshots
+                  - ec2:DescribeVolumes
                 Resource: "*"
