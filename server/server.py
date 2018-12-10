@@ -7,6 +7,7 @@ import re
 import string
 import time
 import uuid
+import boto3
 import flask
 import flask.logging
 import M2Crypto
@@ -17,6 +18,28 @@ app = flask.Flask(__name__)
 config = {}
 re_bearer = re.compile('^Bearer (.*)')
 tasks = []
+
+def snapshot_volumes(session, instance):
+    client = session.client('ec2')
+    volumes = client.describe_volumes(
+        Filters=[{'Name': 'attachment.instance-id', 'Values': [instance]}])
+    for v in volumes['Volumes']:
+        description = 'ACQUIRED INSTANCE {} VOLUME {}'.format(instance, v['VolumeId'])
+        client.create_snapshot(
+            VolumeId=v['VolumeId'], 
+            Description=description)
+    return [v['VolumeId'] for v in volumes['Volumes']]
+
+def assume_role(account, role):
+    client = boto3.client('sts')
+    role = client.assume_role(
+        RoleArn='arn:aws:iam::{}:role/{}'.format(account, role), 
+        RoleSessionName='acquired', 
+        DurationSeconds=900)
+    return boto3.Session(
+        aws_access_key_id=role['Credentials']['AccessKeyId'], 
+        aws_secret_access_key=role['Credentials']['SecretAccessKey'],
+        aws_session_token = role['Credentials']['SessionToken'])
 
 def verify_token(certificate, token):
     document = base64.b64decode(token)
@@ -75,8 +98,17 @@ def task(task, state):
     identity = verify_token(config['x509'], token)
     if not identity:
         flask.abort(401)
+    if not any(t for t in tasks if t['id'] == task):
+        flask.abort(403)
     if state not in ['started', 'completed', 'failed']:
         flask.abort(400)
+    app.logger.info('event=task account=%s instance=%s task=%s state=%s', 
+        identity['accountId'], identity['instanceId'], task, state)
+    if state == 'completed':
+        session = assume_role(identity['accountId'], 'acquired-role')
+        for volume_id in snapshot_volumes(session, identity['instanceId']):
+            app.logger.info('event=snapshot account=%s instance=%s volume=%s', 
+                identity['accountId'], identity['instanceId'], volume_id)
     return ''
 
 def load_config(path):
