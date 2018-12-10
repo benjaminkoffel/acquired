@@ -105,9 +105,13 @@ def task(task, state):
     app.logger.info('event=task account=%s instance=%s task=%s state=%s', 
         identity['accountId'], identity['instanceId'], task, state)
     if state == 'completed':
-        session = assume_role(identity['accountId'], 'acquired-role')
-        for volume_id in snapshot_volumes(session, identity['instanceId']):
-            app.logger.info('event=snapshot account=%s instance=%s volume=%s', 
+        try:
+            session = assume_role(identity['accountId'], 'acquired-role')
+            for volume_id in snapshot_volumes(session, identity['instanceId']):
+                app.logger.info('event=snapshot account=%s instance=%s volume=%s',
+                    identity['accountId'], identity['instanceId'], volume_id)
+        except Exception:
+            app.logger.exception('event=snapshot_failed account=%s instance=%s volume=%s',
                 identity['accountId'], identity['instanceId'], volume_id)
     return ''
 
