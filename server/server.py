@@ -69,7 +69,7 @@ def extract_bearer(header):
     for token in re_bearer.findall(header):
         return token
 
-@app.route('/health')
+@app.route('/')
 def health():
     return 'OK'
 
