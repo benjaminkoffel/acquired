@@ -13,7 +13,7 @@ import M2Crypto
 import M2Crypto.SMIME
 import yaml
 
-def load_config(path, level):
+def load_config(app, level, path):
     gunicorn_logger = logging.getLogger('gunicorn.error')
     app.logger.handlers = gunicorn_logger.handlers if gunicorn_logger.handlers else [flask.logging.default_handler]
     app.logger.setLevel(level)
@@ -23,20 +23,20 @@ def load_config(path, level):
     return config
 
 app = flask.Flask(__name__)
-config = load_config('config.yaml', logging.INFO)
+config = load_config(app, logging.INFO, 'config.yaml')
 re_bearer = re.compile('^Bearer (.*)')
 tasks = []
 
-def snapshot_volumes(session, instance):
-    client = session.client('ec2')
+def snapshot_volumes(session, region, instance):
+    client = session.client('ec2', region)
     volumes = client.describe_volumes(
         Filters=[{'Name': 'attachment.instance-id', 'Values': [instance]}])
     for v in volumes['Volumes']:
         description = 'ACQUIRED INSTANCE {} VOLUME {}'.format(instance, v['VolumeId'])
-        client.create_snapshot(
+        snapshot = client.create_snapshot(
             VolumeId=v['VolumeId'], 
             Description=description)
-    return [v['VolumeId'] for v in volumes['Volumes']]
+        yield snapshot['VolumeId'], snapshot['SnapshotId']
 
 def assume_role(account, role):
     client = boto3.client('sts')
@@ -115,12 +115,12 @@ def task(task, state):
     if state == 'completed':
         try:
             session = assume_role(identity['accountId'], 'acquired-role')
-            for volume_id in snapshot_volumes(session, identity['instanceId']):
-                app.logger.info('event=snapshot account=%s instance=%s volume=%s',
-                    identity['accountId'], identity['instanceId'], volume_id)
+            for volume_id, snapshot_id in snapshot_volumes(session, identity['region'], identity['instanceId']):
+                app.logger.info('event=snapshot account=%s instance=%s volume=%s snapshot=%s',
+                    identity['accountId'], identity['instanceId'], volume_id, snapshot_id)
         except Exception:
-            app.logger.exception('event=snapshot_failed account=%s instance=%s volume=%s',
-                identity['accountId'], identity['instanceId'], volume_id)
+            app.logger.exception('event=snapshot_failed account=%s instance=%s',
+                identity['accountId'], identity['instanceId'])
     return ''
 
 if __name__=='__main__':
