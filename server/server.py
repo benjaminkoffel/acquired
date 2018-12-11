@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import base64
 import json
 import logging
@@ -14,8 +13,17 @@ import M2Crypto
 import M2Crypto.SMIME
 import yaml
 
+def load_config(path, level):
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers if gunicorn_logger.handlers else [flask.logging.default_handler]
+    app.logger.setLevel(level)
+    with open(path, 'r') as f:
+        config = yaml.load(f)
+    config['x509'] = M2Crypto.X509.load_cert_string(config['cert'])
+    return config
+
 app = flask.Flask(__name__)
-config = {}
+config = load_config('config.yaml', logging.INFO)
 re_bearer = re.compile('^Bearer (.*)')
 tasks = []
 
@@ -115,24 +123,5 @@ def task(task, state):
                 identity['accountId'], identity['instanceId'], volume_id)
     return ''
 
-def load_config(path):
-    with open(path, 'r') as f:
-        for k, v in yaml.load(f).items():
-            config[k] = v
-    config['x509'] = M2Crypto.X509.load_cert_string(config['cert'])
-
-def configure_logger(level):
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers if gunicorn_logger.handlers else [flask.logging.default_handler]
-    app.logger.setLevel(level)
-
 if __name__=='__main__':
-    configure_logger(logging.INFO)
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=4444)
-    parser.add_argument('--cert')
-    parser.add_argument('--config', default='server/config.yaml')
-    args = parser.parse_args()
-    ssl_context = (args.cert, args.key) if args.cert and args.key else None
-    load_config(args.config)
-    app.run(host='0.0.0.0', port=args.port, ssl_context=ssl_context)
+    app.run(host='0.0.0.0')
