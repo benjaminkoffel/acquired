@@ -80,6 +80,8 @@ def schedule(action, path=''):
         flask.abort(401)
     if action not in ['memory']:
         flask.abort(400)
+    app.logger.info('event=schedule action=%s path=%s',
+        action, path)
     task = {
         'id': str(uuid.uuid4()).replace('-', ''),
         'action': action,
@@ -95,6 +97,8 @@ def poll():
     identity = verify_token(config['x509'], token)
     if not identity:
         flask.abort(401)
+    app.logger.info('event=poll account=%s instance=%s',
+        identity['accountId'], identity['instanceId'])
     sub = '/{}/{}'.format(identity['accountId'], identity['instanceId'])
     return json.dumps({
         'tasks': [t for t in tasks if sub.startswith(t['path'])]
