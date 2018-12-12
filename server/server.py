@@ -2,6 +2,7 @@
 import base64
 import json
 import logging
+import os
 import re
 import string
 import time
@@ -20,6 +21,7 @@ def load_config(app, level, path):
     with open(path, 'r') as f:
         config = yaml.load(f)
     config['x509'] = M2Crypto.X509.load_cert_string(config['cert'])
+    config['key'] = os.getenv('key')
     return config
 
 app = flask.Flask(__name__)

@@ -11,7 +11,7 @@ import time
 import urllib.request
 import base64
 
-logging.basicConfig(level=logging.DEBUG, format='time="%(asctime)s" level=%(levelname)s %(message)s', stream=sys.stdout)
+logging.basicConfig(level=logging.INFO, format='time="%(asctime)s" level=%(levelname)s %(message)s', stream=sys.stdout)
 
 path = '/usr/local/etc/acquired'
 
@@ -77,7 +77,7 @@ def poll(task_queue, url):
             schedule(task_queue, task)
     except Exception:
         logging.exception('poll')
-    time.sleep(10)
+    time.sleep(60)
 
 def main():
     try:

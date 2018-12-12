@@ -20,12 +20,12 @@ A further objective is to trigger an EBS snapshot upon successful completion.
 ```
 cd server
 docker build -t acquired .
-docker run -d -p 4444:4444 acquired
+docker run -d -p 5000:5000 -e key=admin-api-key acquired
 ```
 
 ## Agent
 ```
-# update server url in install.sh then execute
+echo "http://localhost:5000" > sudo /usr/local/etc/acquired/url
 sudo sh agent/install.sh
 ```
 
