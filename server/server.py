@@ -156,7 +156,7 @@ def status(task, state):
                 app.logger.info('event=snapshot account=%s instance=%s volume=%s snapshot=%s',
                     identity['accountId'], identity['instanceId'], volume, snapshot)
         except:
-            app.logger.info('event=failed account=%s instance=%s',
+            app.logger.exception('event=failed account=%s instance=%s',
                 identity['accountId'], identity['instanceId'])
     return ''
 
