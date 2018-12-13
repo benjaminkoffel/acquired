@@ -54,10 +54,9 @@ sudo yum update -y
 sudo amazon-linux-extras install -y docker
 sudo mkdir -p /data
 sudo mount /dev/sdf1 /data
-sudo docker run -v /data:/data log2timeline/plaso log2timeline /data/disk.plaso /data/tmp
+sudo docker run -v /:/data log2timeline/plaso log2timeline /data/disk.plaso /data
 sudo mkdir -p /artefacts
-sudo cp /data/disk.plaso /artefacts
-sudo cp /usr/local/etc/acquired/artefacts/* /artefacts
+sudo cp /data/disk.plaso /usr/local/etc/acquired/artefacts/* /artefacts
 sudo umount /data
 # detach volume from forensics instance and delete
 ```
