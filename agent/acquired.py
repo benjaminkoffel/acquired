@@ -41,7 +41,7 @@ def acquire():
     with open(linpmem_path, 'rb') as f:
         md5.update(f.read())
     if str(md5.hexdigest()) != linpmem_md5:
-        raise Exception('Integrity check failed %s %s.', linpmem_path, linpmem_md5)
+        raise Exception('Integrity check failed {} {}.'.format(linpmem_path, linpmem_md5))
     filename = '{}/artefacts/memory.{}.aff4r'.format(acquired_path, int(time.time()))
     subprocess.check_call([linpmem_path, '-o', filename], stdout=subprocess.PIPE)
 
