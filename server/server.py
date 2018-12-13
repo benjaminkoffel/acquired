@@ -52,18 +52,18 @@ def snapshot_volumes(session, region, instance):
     for v in volumes['Volumes']:
         description = 'ACQUIRED INSTANCE {} VOLUME {}'.format(instance, v['VolumeId'])
         snapshot = client.create_snapshot(
-            VolumeId=v['VolumeId'], 
+            VolumeId=v['VolumeId'],
             Description=description)
         yield snapshot['VolumeId'], snapshot['SnapshotId']
 
 def assume_role(account, role):
     client = boto3.client('sts')
     role = client.assume_role(
-        RoleArn='arn:aws:iam::{}:role/{}'.format(account, role), 
-        RoleSessionName='acquired', 
+        RoleArn='arn:aws:iam::{}:role/{}'.format(account, role),
+        RoleSessionName='acquired',
         DurationSeconds=900)
     return boto3.Session(
-        aws_access_key_id=role['Credentials']['AccessKeyId'], 
+        aws_access_key_id=role['Credentials']['AccessKeyId'],
         aws_secret_access_key=role['Credentials']['SecretAccessKey'],
         aws_session_token = role['Credentials']['SessionToken'])
 
@@ -128,7 +128,7 @@ def poll():
     identity = verify_token(cert, token)
     if not identity:
         flask.abort(401)
-    app.logger.info('event=poll account=%s instance=%s', 
+    app.logger.info('event=poll account=%s instance=%s',
         identity['accountId'], identity['instanceId'])
     path = '/{}/{}'.format(identity['accountId'], identity['instanceId'])
     return json.dumps({
@@ -147,13 +147,17 @@ def status(task, state):
         flask.abort(403)
     if state not in ['started', 'completed', 'failed']:
         flask.abort(400)
-    app.logger.info('event=task account=%s instance=%s task=%s state=%s', 
+    app.logger.info('event=task account=%s instance=%s task=%s state=%s',
         identity['accountId'], identity['instanceId'], task, state)
     if state == 'completed':
-        session = assume_role(identity['accountId'], 'acquired-role')
-        for volume, snapshot in snapshot_volumes(session, identity['region'], identity['instanceId']):
-            app.logger.info('event=snapshot account=%s instance=%s volume=%s snapshot=%s', 
-                identity['accountId'], identity['instanceId'], volume, snapshot)
+        try:
+            session = assume_role(identity['accountId'], 'acquired-role')
+            for volume, snapshot in snapshot_volumes(session, identity['region'], identity['instanceId']):
+                app.logger.info('event=snapshot account=%s instance=%s volume=%s snapshot=%s',
+                    identity['accountId'], identity['instanceId'], volume, snapshot)
+        except:
+            app.logger.info('event=failed account=%s instance=%s,
+                identity['accountId'], identity['instanceId'])
     return ''
 
 if __name__=='__main__':
