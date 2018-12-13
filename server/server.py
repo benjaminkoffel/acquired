@@ -41,7 +41,7 @@ vSeDCOUMYQR7R9LINYwouHIziqQYMAkGByqGSM44BAMDLwAwLAIUWXBlk40xTwSw
 
 re_bearer = re.compile('^Bearer (.*)')
 
-key = os.getenv('key')
+key = os.getenv('KEY')
 
 tasks = []
 
