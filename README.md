@@ -21,7 +21,7 @@ Upon completion an EBS snapshot is taken of all volumes attached to the instance
 # install AWS role "acquired-service-role.yaml" in server account
 cd server
 docker build -t acquired .
-docker run -d -p 5000:5000 -e key=admin-api-key acquired
+docker run -d -p 5000:5000 -e key=some-secret-key acquired
 ```
 
 ## Agent
@@ -32,16 +32,16 @@ sudo ./agent/install.sh http://localhost:5000
 
 ## Usage
 ```
-schedule action for all instances:
+# acquire memory from all instances
 curl http://localhost:5000/acquire/ -H "Authorization: Bearer [key]"
 
-schedule action for all instances in account:
+# acquire memory from all instances in an acount:
 curl http://localhost:5000/acquire/[account]/ -H "Authorization: Bearer [key]"
 
-schedule action for single instance:
+# acquire memory from single instance
 curl http://localhost:5000/acquire/[account]/[instance] -H "Authorization: Bearer [key]"
 
-example:
+# example
 curl http://localhost:5000/acquire/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer some-secret-key"
 ```
 
