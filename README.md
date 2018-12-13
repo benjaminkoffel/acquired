@@ -18,6 +18,7 @@ Upon completion an EBS snapshot is taken of all volumes attached to the instance
 
 ## Server
 ```
+# install AWS role "acquired-service-role.yaml" in server account
 cd server
 docker build -t acquired .
 docker run -d -p 5000:5000 -e key=admin-api-key acquired
@@ -25,8 +26,8 @@ docker run -d -p 5000:5000 -e key=admin-api-key acquired
 
 ## Agent
 ```
-echo "http://localhost:5000" | sudo tee /usr/local/etc/acquired/url
-sudo sh agent/install.sh
+# install AWS role "acquired-role.yaml" in agent account
+sudo ./agent/install.sh http://localhost:5000
 ```
 
 ## Usage
