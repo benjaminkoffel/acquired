@@ -1,4 +1,4 @@
-# acquired
+# AcquireD
 
 Proof of concept for simple forensic data acquisition for AWS.
 
@@ -14,7 +14,7 @@ The server authenticates agents via PKCS#7 instance metadata and provides tasks 
 
 The agent stores collected data in `/usr/local/etc/acquired/artefacts` and notifies the server of completion status.
 
-A further objective is to trigger an EBS snapshot upon successful completion.
+Upon completion an EBS snapshot is taken of all volumes attached to the instance which can be used for forensic analysis.
 
 ## Server
 ```
@@ -25,26 +25,23 @@ docker run -d -p 5000:5000 -e key=admin-api-key acquired
 
 ## Agent
 ```
-echo "http://localhost:5000" > sudo /usr/local/etc/acquired/url
+echo "http://localhost:5000" | sudo tee /usr/local/etc/acquired/url
 sudo sh agent/install.sh
 ```
 
 ## Usage
 ```
-actions:
-- memory: linpmem memory dump
-
 schedule action for all instances:
-curl http://localhost:4444/schedule/[action]/ -H "Authorization: Bearer [key]"
+curl http://localhost:4444/acquire/ -H "Authorization: Bearer [key]"
 
 schedule action for all instances in account:
-curl http://localhost:4444/schedule/[action]/[account_id]/ -H "Authorization: Bearer [key]"
+curl http://localhost:4444/acquire/[account]/ -H "Authorization: Bearer [key]"
 
 schedule action for single instance:
-curl http://localhost:4444/schedule/[action]/[account_id]/[instance_id] -H "Authorization: Bearer [key]"
+curl http://localhost:4444/acquire/[account]/[instance] -H "Authorization: Bearer [key]"
 
 example:
-curl http://localhost:4444/schedule/memory/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer ZOamAOEAN23AMcnAOMa32MAoANa33Acp"
+curl http://localhost:4444/acquire/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer some-secret-key"
 ```
 
 ## References
