@@ -45,6 +45,23 @@ example:
 curl http://localhost:5000/acquire/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer some-secret-key"
 ```
 
+## Forensics
+```
+# create forensics instance using amazon linux 2 ami
+# create volume from snapshot you want to analyze
+# attach volume to forensics instance at /dev/sdf
+sudo yum update -y
+sudo amazon-linux-extras install -y docker
+sudo mkdir -p /data
+sudo mount /dev/sdf1 /data
+sudo docker run -v /data:/data log2timeline/plaso log2timeline /data/disk.plaso /data/tmp
+sudo mkdir -p /artefacts
+sudo cp /data/disk.plaso /artefacts
+sudo cp /usr/local/etc/acquired/artefacts/* /artefacts
+sudo umount /data
+# detach volume from forensics instance and delete
+```
+
 ## References
 - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
 - https://github.com/google/rekall
