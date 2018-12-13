@@ -33,16 +33,16 @@ sudo ./agent/install.sh http://localhost:5000
 ## Usage
 ```
 schedule action for all instances:
-curl http://localhost:4444/acquire/ -H "Authorization: Bearer [key]"
+curl http://localhost:5000/acquire/ -H "Authorization: Bearer [key]"
 
 schedule action for all instances in account:
-curl http://localhost:4444/acquire/[account]/ -H "Authorization: Bearer [key]"
+curl http://localhost:5000/acquire/[account]/ -H "Authorization: Bearer [key]"
 
 schedule action for single instance:
-curl http://localhost:4444/acquire/[account]/[instance] -H "Authorization: Bearer [key]"
+curl http://localhost:5000/acquire/[account]/[instance] -H "Authorization: Bearer [key]"
 
 example:
-curl http://localhost:4444/acquire/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer some-secret-key"
+curl http://localhost:5000/acquire/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer some-secret-key"
 ```
 
 ## References
