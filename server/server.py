@@ -117,7 +117,8 @@ def acquire(path=''):
     task = add_task(path)
     if not task:
         flask.abort(429)
-    app.logger.info('event=schedule path=%s', path)
+    app.logger.info('event=schedule task=%s path=%s expires=%s',
+        task['id'], task['path'], task['expires'])
     return json.dumps(task)
 
 @app.route('/poll')
