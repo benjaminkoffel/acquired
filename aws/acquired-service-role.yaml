@@ -1,4 +1,4 @@
-
+---
 Resources:
   AcquiredRole:
     Type: AWS::IAM::Role
@@ -13,14 +13,3 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      Policies:
-        - PolicyName: root
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ec2:CreateSnapshot
-                  - ec2:DescribeSnapshots
-                  - ec2:DescribeVolumes
-                Resource: "*"
