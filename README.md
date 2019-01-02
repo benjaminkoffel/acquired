@@ -33,9 +33,6 @@ sudo ./agent/install.sh http://localhost:5000
 
 ## Usage
 ```
-# acquire memory from all instances
-curl http://localhost:5000/acquire/ -H "Authorization: Bearer [key]"
-
 # acquire memory from all instances in an acount:
 curl http://localhost:5000/acquire/[account]/ -H "Authorization: Bearer [key]"
 
