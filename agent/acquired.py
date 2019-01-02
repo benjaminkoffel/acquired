@@ -37,13 +37,10 @@ def http_token():
     return base64.b64encode(data).decode('utf-8')
 
 def acquire():
-    md5 = hashlib.md5()
-    with open(linpmem_path, 'rb') as f:
-        md5.update(f.read())
-    if str(md5.hexdigest()) != linpmem_md5:
-        raise Exception('Integrity check failed {} {}.'.format(linpmem_path, linpmem_md5))
-    filename = '{}/artefacts/memory.{}.aff4r'.format(acquired_path, int(time.time()))
-    subprocess.check_call([linpmem_path, '-o', filename], stdout=subprocess.PIPE)
+    md5 = '"{}  {}"'.format(linpmem_md5, linpmem_path)
+    filename = '{}/artefacts/image.{}.aff4'.format(acquired_path, int(time.time()))
+    command = ['echo', md5, '|', 'md5sum', '-c', '&&', linpmem_path, '--output', filename]
+    subprocess.check_call(command, stdout=subprocess.PIPE)
 
 def monitor(task_queue, url):
     while True:
