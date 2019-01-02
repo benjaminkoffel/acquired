@@ -12,6 +12,7 @@ import flask
 import flask.logging
 import M2Crypto
 import M2Crypto.SMIME
+import concurrent.futures
 
 app = flask.Flask('acquired-server')
 app.logger.handlers = logging.getLogger('gunicorn.error').handlers \
@@ -40,40 +41,51 @@ vSeDCOUMYQR7R9LINYwouHIziqQYMAkGByqGSM44BAMDLwAwLAIUWXBlk40xTwSw
 -----END CERTIFICATE-----''')
 
 re_bearer = re.compile('^Bearer (.*)')
+re_account = re.compile('^[0-9]{12}$')
+re_instance = re.compile('^i\-[0-9a-f]{16}$')
 
-key = os.getenv('KEY')
+secretsmanager = boto3.client('secretsmanager')
+key = secretsmanager.get_secret_value(SecretId='/acquired/key')['SecretString']
 
 tasks = []
 
-def snapshot_volumes(session, region, instance):
-    client = session.client('ec2', region)
-    volumes = client.describe_volumes(
-        Filters=[{'Name': 'attachment.instance-id', 'Values': [instance]}])
-    for v in volumes['Volumes']:
-        description = 'ACQUIRED INSTANCE {} VOLUME {}'.format(instance, v['VolumeId'])
-        snapshot = client.create_snapshot(
-            VolumeId=v['VolumeId'],
-            Description=description)
-        yield snapshot['VolumeId'], snapshot['SnapshotId']
+pool = concurrent.futures.ThreadPoolExecutor(1)
 
-def assume_role(account, role):
-    client = boto3.client('sts')
-    role = client.assume_role(
-        RoleArn='arn:aws:iam::{}:role/{}'.format(account, role),
-        RoleSessionName='acquired',
-        DurationSeconds=900)
-    return boto3.Session(
-        aws_access_key_id=role['Credentials']['AccessKeyId'],
-        aws_secret_access_key=role['Credentials']['SecretAccessKey'],
-        aws_session_token = role['Credentials']['SessionToken'])
+def create_snapshot(region, account, instance, attempts=3):
+    try:
+        sts = boto3.client('sts')
+        role = sts.assume_role(
+            RoleArn='arn:aws:iam::{}:role/acquired-role'.format(account),
+            RoleSessionName='acquired',
+            DurationSeconds=900)
+        session = boto3.Session(
+            aws_access_key_id=role['Credentials']['AccessKeyId'],
+            aws_secret_access_key=role['Credentials']['SecretAccessKey'],
+            aws_session_token = role['Credentials']['SessionToken'])
+        ec2 = session.client('ec2', region)
+        volumes = ec2.describe_volumes(
+            Filters=[{'Name': 'attachment.instance-id', 'Values': [instance]}])
+        for v in volumes['Volumes']:
+            description = 'ACQUIRED INSTANCE {} VOLUME {}'.format(instance, v['VolumeId'])
+            snapshot = ec2.create_snapshot(
+                VolumeId=v['VolumeId'],
+                Description=description)
+            app.logger.info('event=snapshot region=%s account=%s instance=%s volume=%s snapshot=%s',
+                region, account, instance, snapshot['VolumeId'], snapshot['SnapshotId'])
+    except:
+        if attempts:
+            time.sleep(1)
+            return create_snapshot(region, account, instance, attempts - 1)
+        app.logger.exception('event=failed account=%s instance=%s',
+            identity['accountId'], identity['instanceId'])
 
-def add_task(path):
+def add_task(account, instance):
     for e in [t for t in tasks if t['expires'] > int(time.time())]:
         tasks.remove(e)
     if len(tasks) < 1000:
         task = {
             'id': str(uuid.uuid4()).replace('-', ''),
-            'path': '/{}'.format(path),
+            'path': '/{}/{}'.format(account, instance),
             'expires': int(time.time()) + 600,
         }
         tasks.append(task)
@@ -106,15 +118,19 @@ def extract_bearer(header):
 def health():
     return ''
 
-@app.route('/acquire/')
-@app.route('/acquire/<path:path>')
-def acquire(path=''):
+@app.route('/acquire/<account>')
+@app.route('/acquire/<account>/<instance>')
+def acquire(account, instance=''):
     token = extract_bearer(flask.request.headers.get('Authorization'))
     if not token:
         flask.abort(401)
     if token != key:
         flask.abort(401)
-    task = add_task(path)
+    if not re_account.match(account):
+        flask.abort(400)
+    if instance and not re_instance.match(instance):
+        flask.abort(400)
+    task = add_task(account, instance)
     if not task:
         flask.abort(429)
     app.logger.info('event=schedule task=%s path=%s expires=%s',
@@ -151,14 +167,7 @@ def status(task, state):
     app.logger.info('event=task account=%s instance=%s task=%s state=%s',
         identity['accountId'], identity['instanceId'], task, state)
     if state == 'completed':
-        try:
-            session = assume_role(identity['accountId'], 'acquired-role')
-            for volume, snapshot in snapshot_volumes(session, identity['region'], identity['instanceId']):
-                app.logger.info('event=snapshot account=%s instance=%s volume=%s snapshot=%s',
-                    identity['accountId'], identity['instanceId'], volume, snapshot)
-        except:
-            app.logger.exception('event=failed account=%s instance=%s',
-                identity['accountId'], identity['instanceId'])
+        pool.submit(create_snapshot, identity['region'], identity['accountId'], identity['instanceId'])
     return ''
 
 if __name__=='__main__':

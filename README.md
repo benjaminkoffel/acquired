@@ -18,7 +18,8 @@ Upon completion an EBS snapshot is taken of all volumes attached to the instance
 
 ## Server
 ```
-# install AWS role "acquired-service-role.yaml" in server account
+# install cloudformation "aws/acquired-key.yaml" in service account and update api key value in aws console
+# install cloudformation "aws/acquired-service-role.yaml" in service account
 cd server
 docker build -t acquired .
 docker run -d -p 5000:5000 -e key=some-secret-key acquired
@@ -26,7 +27,7 @@ docker run -d -p 5000:5000 -e key=some-secret-key acquired
 
 ## Agent
 ```
-# install AWS role "acquired-role.yaml" in agent account
+# install cloudformation "aws/acquired-role.yaml" in target accounts
 sudo ./agent/install.sh http://localhost:5000
 ```
 
@@ -42,7 +43,7 @@ curl http://localhost:5000/acquire/[account]/ -H "Authorization: Bearer [key]"
 curl http://localhost:5000/acquire/[account]/[instance] -H "Authorization: Bearer [key]"
 
 # example
-curl http://localhost:5000/acquire/568333322432/i-03d629d19cb30dee -H "Authorization: Bearer some-secret-key"
+curl http://localhost:5000/acquire/455989966554/i-98ea29d19cb3a322 -H "Authorization: Bearer super_secret_password"
 ```
 
 ## Forensics

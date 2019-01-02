@@ -1,0 +1,8 @@
+---
+Resources:
+  AcquiredKey:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: /acquired/key
+      Description: Administrator API key for AcquireD.
+      SecretString: ""

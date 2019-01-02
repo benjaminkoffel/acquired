@@ -1,6 +1,9 @@
-
+---
+Parameters:
+  AcquiredKeyARN:
+    Type: String
 Resources:
-  AcquiredRole:
+  AcquiredServiceRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: acquired-service-role
@@ -20,7 +23,5 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - ec2:CreateSnapshot
-                  - ec2:DescribeSnapshots
-                  - ec2:DescribeVolumes
-                Resource: "*"
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref AcquiredKeyARN
