@@ -44,7 +44,8 @@ re_bearer = re.compile('^Bearer (.*)')
 re_account = re.compile('^[0-9]{12}$')
 re_instance = re.compile('^i\-[0-9a-f]{16}$')
 
-key = os.getenv('KEY')
+secretsmanager = boto3.client('secretsmanager')
+key = secretsmanager.get_secret_value(SecretId='/acquired/key')['SecretString']
 
 tasks = []
 
@@ -52,8 +53,8 @@ pool = concurrent.futures.ThreadPoolExecutor(1)
 
 def create_snapshot(region, account, instance, attempts=3):
     try:
-        client = boto3.client('sts')
-        role = client.assume_role(
+        sts = boto3.client('sts')
+        role = sts.assume_role(
             RoleArn='arn:aws:iam::{}:role/acquired-role'.format(account),
             RoleSessionName='acquired',
             DurationSeconds=900)
@@ -90,12 +91,6 @@ def add_task(account, instance):
         tasks.append(task)
         return task
 
-def validate_instance(instance):
-    return re_instance.match(account)
-
-def validate_account(account):
-    return re_account.match(account)
-
 def verify_token(certificate, token):
     try:
         document = base64.b64decode(token)
@@ -131,12 +126,11 @@ def acquire(account, instance=''):
         flask.abort(401)
     if token != key:
         flask.abort(401)
-    if not validate_account(account):
+    if not re_account.match(account):
         flask.abort(400)
-    if instance and not validate_instance(instance):
+    if instance and not re_instance.match(instance):
         flask.abort(400)
-    path = '/{}/{}'.format(account, instance)
-    task = add_task(path)
+    task = add_task(account, instance)
     if not task:
         flask.abort(429)
     app.logger.info('event=schedule task=%s path=%s expires=%s',
